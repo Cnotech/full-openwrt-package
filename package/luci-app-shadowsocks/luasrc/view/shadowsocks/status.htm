@@ -1,0 +1,44 @@
+<%#
+ Copyright (C) 2017 Xingwang Liao <kuoruan@gmail.com>
+ Licensed to the public under the GNU General Public License v3.
+-%>
+
+<fieldset class="cbi-section" id="_status_table">
+	<legend><%:Running Status%></legend>
+
+	<fieldset class="cbi-section-node">
+		<table width="100%" cellspacing="10">
+			<tr><td width="33%"><%:Transparent Proxy%></td><td id="_redir_status"><em><%:Collecting data...%></em></td></tr>
+			<tr><td width="33%"><%:Socks5 Proxy%></td><td id="_local_status"><em><%:Collecting data...%></em></td></tr>
+			<tr><td width="33%"><%:Port Forward%></td><td id="_tunnel_status"><em><%:Collecting data...%></em></td></tr>
+		</table>
+	</fieldset>
+</fieldset>
+
+<script type="text/javascript">//<![CDATA[
+	(function(doc) {
+		function setStatus(elm, info) {
+			if (elm && info) {
+				if (info.ss > 0 || info.ssr > 0) {
+					elm.innerHTML = String.format('<%:Running (SS: %d, SSR: %d)%>', info.ss, info.ssr);
+				} else {
+					elm.innerHTML = '<%:Not Running%>';
+				}
+			}
+		}
+
+		var elements = {
+			redir_status : doc.getElementById("_redir_status"),
+			local_status : doc.getElementById("_local_status"),
+			tunnel_status : doc.getElementById("_tunnel_status"),
+		};
+
+		XHR.poll(5, '<%=url("admin/services/shadowsocks/status")%>', null,
+			function(x, info) {
+				for (var k in elements) {
+					setStatus(elements[k], info[k])
+				}
+			}
+		);
+	}(document));
+//]]></script>

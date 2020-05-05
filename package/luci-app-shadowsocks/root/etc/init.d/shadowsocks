@@ -1,0 +1,431 @@
+#!/bin/sh /etc/rc.common
+#
+# Copyright (C) 2017 Xingwang Liao <kuoruan@gmail.com>
+#
+# This is free software, licensed under the GNU General Public License v3.
+# See /LICENSE for more information.
+#
+
+START=90
+USE_PROCD=1
+
+NAME=shadowsocks
+EXTRA_COMMANDS=rules
+EXTRA_HELP="	rules	Add firewall rules for transparent proxy (if needed)"
+
+SS_RULES=/usr/bin/ss-rules
+SS_PLUGINS=/var/run/ss-plugin
+
+SS_CONFIG_BASE=/var/etc/ss-config.json
+
+if [ -r ${IPKG_INSTROOT}/usr/share/libubox/jshn.sh ]; then
+	. ${IPKG_INSTROOT}/usr/share/libubox/jshn.sh
+elif [ -r ${IPKG_INSTROOT}/lib/functions/jshn.sh ]; then
+	. ${IPKG_INSTROOT}/lib/functions/jshn.sh
+else
+	logger -p daemon.err -t "$NAME" "Please install jshn first."
+	exit 1
+fi
+
+_info() {
+	logger -p daemon.info -t "$NAME" "$*"
+}
+
+_err() {
+	logger -p daemon.err -t "$NAME" "$*"
+}
+
+_load_config() {
+	[ -n "$CONFIG_LOADED" ] || {
+		config_load "$NAME"
+		CONFIG_LOADED="1"
+	}
+}
+
+uci_get_by_type_option(){
+	local type="$1"
+	local option="$2"
+	local default="$3"
+
+	local ret
+	ret="$(uci -q get ${NAME}.@${type}[-1].${option})"
+	echo "${ret:=$default}"
+}
+
+command_exists() {
+	command -v "$@" >/dev/null
+}
+
+start_rules() {
+	local servers lan_hosts
+	local transparent_port udp_relay_server
+
+	server_cb() {
+		local cfg="$1"
+
+		local server_addr
+
+		config_get server_addr "$cfg" server_addr
+		append servers "$server_addr"
+	}
+
+	lan_host_cb() {
+		local cfg="$1"
+
+		local is_enable
+
+		config_get_bool is_enable "$cfg" enable "0"
+
+		if [ "$is_enable" = "1" ]; then
+			local host_type macaddr
+
+			config_get host_type "$cfg" type
+			config_get macaddr "$cfg" macaddr
+
+			append lan_hosts "${host_type},${macaddr}"
+		fi
+	}
+
+	proxy_cb() {
+		local cfg="$1"
+
+		local proxy_type
+
+		config_get proxy_type "$cfg" type
+
+		if [ "$proxy_type" = "transparent" ]; then
+			config_get udp_relay_server "$cfg" udp_relay_server
+			config_get transparent_port "$cfg" local_port
+		fi
+	}
+
+	config_foreach server_cb "server"
+	config_foreach lan_host_cb "lan_host"
+	config_foreach proxy_cb "proxy"
+
+	local self_proxy extra_params
+
+	self_proxy="$(uci_get_by_type_option access_control self_proxy 1)"
+
+	case "$self_proxy" in
+		1)
+			append extra_params "-o"
+			;;
+		2)
+			append extra_params "-O"
+			;;
+	esac
+
+	if [ -n "$udp_relay_server" ] &&
+		[ "$udp_relay_server" = "same" ] ||
+		validate_server_section "$udp_relay_server"; then
+		append extra_params "-u"
+	fi
+
+	[ -n "$transparent_port" ] || transparent_port="1234"
+
+	$SS_RULES \
+		-B "$(uci_get_by_type_option access_control wan_bp_list)" \
+		-b "$(uci_get_by_type_option access_control wan_bp_ips)" \
+		-W "$(uci_get_by_type_option access_control wan_fw_list)" \
+		-w "$(uci_get_by_type_option access_control wan_fw_ips)" \
+		-I "$(uci_get_by_type_option access_control lan_ifaces)" \
+		-d "$(uci_get_by_type_option access_control lan_target)" \
+		-e "$(uci_get_by_type_option access_control ipt_ext)" \
+		-l "$transparent_port" \
+		-s "$servers" \
+		-a "$lan_hosts" \
+		"$extra_params"
+}
+
+rules() {
+	if ! (pidof ss-redir ssr-redir >/dev/null); then
+		$SS_RULES -f
+		return 0
+	fi
+
+	_load_config
+	start_rules || $SS_RULES -f
+}
+
+check_udp_port() {
+	local check_port="$1"
+	local p
+
+	for p in $USED_UDP_PORT; do
+		[ "$check_port" = "$p" ] && return 1
+	done
+
+	USED_UDP_PORT="${USED_UDP_PORT} ${check_port}"
+}
+
+validate_server_section() {
+	uci_validate_section "$NAME" server "$1" \
+		'server_addr:ipaddr' \
+		'server_port:port' \
+		'ssr_server:bool:0' \
+		'fast_open:bool:0' \
+		'timeout:uinteger:60' \
+		'password:string' \
+		'key:string' \
+		'encrypt_method:string:none' \
+		'plugin:string' \
+		'plugin_opts:string' \
+		'protocol:string:origin' \
+		'protocol_param:string' \
+		'obfs:string:plain' \
+		'obfs_param:string'
+}
+
+validate_proxy_section() {
+	uci_validate_section "$NAME" proxy "$1" \
+		'use_server:list(uciname)' \
+		'type:or("transparent","socks5","forward")' \
+		'udp_relay_server:or("main",uciname)' \
+		'local_port:port' \
+		'destination:string' \
+		'mtu:range(296,9200):1492'
+}
+
+generate_config() {
+	local file="$1"
+
+	[ -n "$server_addr" ] && [ -n "$server_port" ] || {
+		_err "Server address or port empty."
+		return 1
+	}
+
+	json_init
+	json_add_string "server" "$server_addr"
+	json_add_int "server_port" "$server_port"
+	json_add_string "local_address" "0.0.0.0"
+	json_add_string "method" "$encrypt_method"
+	json_add_int "timeout" "$timeout"
+
+	if [ "$ssr_server" = "1" ]; then
+
+		[ -n "$password" ] || { _err "Server password empty."; return 1; }
+
+		json_add_string "password" "$password"
+		json_add_string "protocol" "$protocol"
+		json_add_string "protocol_param" "$protocol_param"
+		json_add_string "obfs" "$obfs"
+		json_add_string "obfs_param" "$obfs_param"
+	else
+		if [ -n "$key" ]; then
+			json_add_string "key" "$key"
+		elif [ -n "$password" ]; then
+			json_add_string "password" "$password"
+		else
+			_err "Server key and password empty."
+			return 1
+		fi
+
+		json_add_boolean "reuse_port" "1"
+
+		if [ -n "$plugin" ]; then
+			echo "$plugin" >>"$SS_PLUGINS"
+			json_add_string "plugin" "$plugin"
+
+			if [ -n "$plugin_opts" ]; then
+				json_add_string "plugin_opts" "$plugin_opts"
+			fi
+		fi
+	fi
+
+	json_close_object
+
+	json_dump -i >"$file"
+}
+
+start_transparent() {
+	local section="$1"
+	local udp="$2"
+	local identifier="$3"
+
+	validate_server_section "$section" || {
+		_err "Server ${section} validate failed."
+		return 1
+	}
+
+	[ -n "$local_port" ] || local_port="1234"
+
+	[ -z "$udp" ] || check_udp_port "$local_port" || {
+		_err "UDP port ${check_port} already in use."
+		return 1
+	}
+
+	[ "$ssr_server" = "1" ] && CMD_REDIR="ssr-redir" || CMD_REDIR="ss-redir"
+	command_exists "$CMD_REDIR" || { _err "Can't find ${CMD_REDIR}."; return 1; }
+
+	local config_file="${SS_CONFIG_BASE}.${section}"
+
+	generate_config "$config_file" || {
+		_err "Error create config file."
+		return 1
+	}
+
+	procd_open_instance "${NAME}.redir.${section}${identifier}"
+	procd_set_param command "$CMD_REDIR"
+	procd_append_param command -c "$config_file"
+	procd_append_param command -l "$local_port"
+	procd_append_param command --mtu "$mtu"
+	procd_append_param command "$udp"
+
+	if [ "$ssr_server" != "1" ] && [ "$fast_open" = "1" ]; then
+		procd_append_param command --fast-open
+	fi
+
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_set_param file "$config_file"
+	procd_close_instance
+}
+
+start_socks5() {
+	local section="$1"
+
+	validate_server_section "$section" || {
+		_err "Server ${section} validate failed."
+		return 1
+	}
+
+	[ -n "$local_port" ] || { _err "Local port empty."; return 1; }
+
+	check_udp_port "$local_port" || {
+		_err "UDP port ${check_port} already in use."
+		return 1
+	}
+
+	[ "$ssr_server" = "1" ] && CMD_LOCAL="ssr-local" || CMD_LOCAL="ss-local"
+	command_exists "$CMD_LOCAL" || { _err "Can't find ${CMD_LOCAL}."; return 1; }
+
+	local config_file="${SS_CONFIG_BASE}.${section}"
+
+	generate_config "$config_file" || {
+		_err "Error create config file."
+		return 1
+	}
+
+	procd_open_instance "${NAME}.local.${section}"
+	procd_set_param command "$CMD_LOCAL"
+	procd_append_param command -c "$config_file"
+	procd_append_param command -l "$local_port"
+	procd_append_param command --mtu "$mtu"
+	procd_append_param command -u
+
+	if [ "$ssr_server" != "1" ] && [ "$fast_open" = "1" ]; then
+		procd_append_param command --fast-open
+	fi
+
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_set_param file "$config_file"
+	procd_close_instance
+}
+
+start_forward() {
+	local section="$1"
+
+	validate_server_section "$section" || {
+		_err "Server ${section} validate failed."
+		return 1
+	}
+
+	[ -n "$local_port" ] || { _err "Local port empty."; return 1; }
+	[ -n "$destination" ] || { _err "Destination empty."; return 1; }
+
+	check_udp_port "$local_port" || {
+		_err "UDP port ${check_port} already in use."
+		return 1
+	}
+
+	[ "$ssr_server" = "1" ] && CMD_TUNNEL="ssr-tunnel" || CMD_TUNNEL="ss-tunnel"
+	command_exists "$CMD_TUNNEL" || { _err "Can't find ${CMD_TUNNEL}."; return 1; }
+
+	local config_file="${SS_CONFIG_BASE}.${section}"
+
+	generate_config "$config_file" || {
+		_err "Error create config file."
+		return 1
+	}
+
+	procd_open_instance "${NAME}.tunnel.${section}"
+	procd_set_param command "$CMD_TUNNEL"
+	procd_append_param command -c "$config_file"
+	procd_append_param command -l "$local_port"
+	procd_append_param command -L "$destination"
+	procd_append_param command --mtu "$mtu"
+	procd_append_param command -u
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_set_param file "$config_file"
+	procd_close_instance
+}
+
+start_proxy() {
+	local section="$1"
+
+	validate_proxy_section "$section" || {
+		_err "Proxy ${section} validate failed."
+		return 1
+	}
+
+	[ -n "$use_server" ] || { _info "Proxy ${section} disabled."; return 0; }
+
+	if [ "$type" = "transparent" ] && [ -n "$udp_relay_server" ]; then
+		if [ "$udp_relay_server" = "same" ]; then
+			for s in $use_server; do
+				start_transparent "$s" "-u"
+			done
+		else
+			for s in $use_server; do
+				start_transparent "$s"
+			done
+
+			start_transparent "$udp_relay_server" "-U" "-udp"
+		fi
+	else
+		for s in $use_server; do
+			start_$type "$s"
+		done
+	fi
+}
+
+stop_plugins() {
+	if [ -f "$SS_PLUGINS" ]; then
+		kill_all $(sort -u "$SS_PLUGINS")
+		rm -f "$SS_PLUGINS"
+	fi
+}
+
+service_triggers() {
+	procd_add_reload_trigger "$NAME"
+}
+
+start_service() {
+	_load_config
+	config_foreach start_proxy "proxy"
+	(sleep 3 && rules) &
+}
+
+stop_service() {
+	$SS_RULES -f
+	stop_plugins
+	rm -f "${SS_CONFIG_BASE}"*
+}
+
+reload_service() {
+	stop_plugins
+	start
+}
+
+boot() {
+	local delay
+	delay=$(uci_get_by_type_option general startup_delay 0)
+	(sleep $delay && start "$@" >/dev/null 2>&1) &
+	return 0
+}
