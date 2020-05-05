@@ -20,6 +20,12 @@
 
 [kuoruan/openwrt-feeds](https://github.com/kuoruan/openwrt-feeds)
 
+
+[vernesong/OpenClash](https://github.com/vernesong/OpenClash)
+
+
+[frainzy1477/luci-app-clash](https://github.com/frainzy1477/luci-app-clash)
+
 ### 如何使用
 
 1. 添加 `src-git cnotech https://github.com/Cnotech/full-openwrt-package` 到 OpenWRT源码根目录feeds.conf.default文件
