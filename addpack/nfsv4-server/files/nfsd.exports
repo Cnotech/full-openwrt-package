@@ -1,0 +1,1 @@
+/mnt	*(fsid=0,ro,all_squash,insecure,sync)

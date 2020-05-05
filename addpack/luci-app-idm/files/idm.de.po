@@ -1,0 +1,47 @@
+﻿msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+msgid "Identities"
+msgstr "Benutzerverwaltung"
+
+msgid "User and Groups"
+msgstr "Benutzer und Gruppen"
+
+msgid "Initialize"
+msgstr "Initialisieren"
+
+msgid "Group"
+msgstr "Gruppe"
+
+msgid "Given name"
+msgstr "Vorname"
+
+msgid "Last Name"
+msgstr "Nachname"
+
+msgid "Kerberos principal"
+msgstr "Kerberos Identität"
+
+msgid "User"
+msgstr "Benutzer"
+
+msgid "Computer"
+msgstr "Computer"
+
+msgid "DNS domain"
+msgstr "DNS Domäne"
+
+msgid "Windows Domain"
+msgstr "Windows Domäne"
+
+msgid "Domain"
+msgstr "Windows Domäne"
+
+msgid "LDAP base DN"
+msgstr "LDAP Basis DN"
+
+msgid "LDAP Manager password"
+msgstr "LDAP Manager Passwort"
+
+msgid "Warning! Initializing IDM will erase all existing objects!"
+msgstr "Warnung! Initialisierung löscht alle bereits existierenden Objekte!"

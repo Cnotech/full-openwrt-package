@@ -1,0 +1,7 @@
+device('avm-fritz-box-7312', 'avm_fritz7312', {
+	factory = false,
+})
+
+device('netgear-dgn3500b', 'netgear_dgn3500b', {
+	factory_ext = '.img',
+})

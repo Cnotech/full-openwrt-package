@@ -26,6 +26,45 @@
 
 [frainzy1477/luci-app-clash](https://github.com/frainzy1477/luci-app-clash)
 
+
+[aa65535/openwrt-shadowvpn](https://github.com/aa65535/openwrt-shadowvpn)
+
+
+[kenzok8/openwrt-packages](https://github.com/kenzok8/openwrt-packages)
+
+
+[rufengsuixing/luci-app-adguardhome](https://github.com/rufengsuixing/luci-app-adguardhome)
+
+
+[wongsyrone/openwrt-Pcap_DNSProxy](https://github.com/wongsyrone/openwrt-Pcap_DNSProxy)
+
+
+[hubaiz/DslrDashboardServer](https://github.com/hubaiz/DslrDashboardServer)
+
+
+[tobiaswaldvogel/openwrt-addpack](https://github.com/tobiaswaldvogel/openwrt-addpack)
+
+
+[maxlicheng/luci-app-unblockmusic](https://github.com/maxlicheng/luci-app-unblockmusic)
+
+
+[giaulo/luci-app-filebrowser](https://github.com/giaulo/luci-app-filebrowser)
+
+
+[sensec/ddns-scripts_aliyun](https://github.com/sensec/ddns-scripts_aliyun)
+
+
+[freifunk-gluon/gluon](https://github.com/freifunk-gluon/gluon)
+
+
+[Kiougar/luci-wrtbwmon](https://github.com/Kiougar/luci-wrtbwmon)
+
+
+[anshi233/Openwrt-BBR](https://github.com/anshi233/Openwrt-BBR)
+
+
+[zhaojh329/oui](https://github.com/zhaojh329/oui)
+
 ### 如何使用
 
 1. 添加 `src-git cnotech https://github.com/Cnotech/full-openwrt-package` 到 OpenWRT源码根目录feeds.conf.default文件

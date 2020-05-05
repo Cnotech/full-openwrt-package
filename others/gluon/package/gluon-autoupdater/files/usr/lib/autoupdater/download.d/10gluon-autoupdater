@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /lib/gluon/autoupdater/lib.sh
+
+
+stop cron
+stop urngd
+stop micrond
+stop sysntpd
