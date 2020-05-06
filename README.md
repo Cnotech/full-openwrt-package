@@ -105,11 +105,16 @@
 [kissg1988/seafile-openwrt](https://github.com/kissg1988/seafile-openwrt)
 
 
-[luci-access-control-package](https://github.com/luci-access-control-package)
+[k-szuster/luci-access-control-package](https://github.com/k-szuster/luci-access-control-package)
+
+
+[fw876/helloworld](https://github.com/fw876/helloworld)
 
 ### 如何使用
 
 1. 添加 `src-git cnotech https://github.com/Cnotech/full-openwrt-package` 到 OpenWRT源码根目录feeds.conf.default文件
+
+>建议搭配`src-git coolsnowwolf https://github.com/coolsnowwolf/packages`使用
 
 2. 执行
 ```bash
