@@ -1,0 +1,41 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "General Setting"
+msgstr "基本设置"
+
+msgid "ByPass LAN"
+msgstr "不去广告的内网主机"
+
+msgid "Version"
+msgstr "版本"
+
+msgid "Rules"
+msgstr "规则"
+
+msgid "User Custom"
+msgstr "用户自定义"
+
+msgid "Counts"
+msgstr "数量"
+
+msgid "ADBlock"
+msgstr "广告阻断"
+
+msgid "Extra arguments"
+msgstr "附加参数"
+
+msgid "None"
+msgstr "无"
+
+msgid "Proxy port numbers %s only"
+msgstr "仅代理 %s 端口"
+
+msgid "Passes additional arguments to iptables. Use with care!"
+msgstr "传递到iptables的额外参数。小心使用！"
+
+msgid "KP-List"
+msgstr "去广告域名列表"

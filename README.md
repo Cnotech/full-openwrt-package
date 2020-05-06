@@ -65,6 +65,48 @@
 
 [zhaojh329/oui](https://github.com/zhaojh329/oui)
 
+
+[sypopo/luci-theme-argon-mc](https://github.com/sypopo/luci-theme-argon-mc)
+
+
+[OnionIoT/OpenWRT-Packages](https://github.com/OnionIoT/OpenWRT-Packages)
+
+
+[mchome/openwrt-vlmcsd](https://github.com/mchome/openwrt-vlmcsd)
+
+
+[mchome/luci-app-vlmcsd](https://github.com/mchome/luci-app-vlmcsd)
+
+
+[rosywrt/luci-theme-rosy](https://github.com/rosywrt/luci-theme-rosy)
+
+
+[openwrt-develop/luci-theme-atmaterial](https://github.com/openwrt-develop/luci-theme-atmaterial)
+
+
+[aa65535/openwrt-autossh](https://github.com/aa65535/openwrt-autossh)
+
+
+[happyzhang1995/openwrt-adguardhome](https://github.com/happyzhang1995/openwrt-adguardhome)
+
+
+[happyzhang1995/luci-app-adguardhome](https://github.com/happyzhang1995/luci-app-adguardhome)
+
+
+[WouldChar/openwrt-brook-tproxy](https://github.com/WouldChar/openwrt-brook-tproxy)
+
+
+[honwen/luci-app-koolproxy](https://github.com/honwen/luci-app-koolproxy)
+
+
+[MuJJus/luci-app-radius](https://github.com/MuJJus/luci-app-radius)
+
+
+[kissg1988/seafile-openwrt](https://github.com/kissg1988/seafile-openwrt)
+
+
+[luci-access-control-package](https://github.com/luci-access-control-package)
+
 ### 如何使用
 
 1. 添加 `src-git cnotech https://github.com/Cnotech/full-openwrt-package` 到 OpenWRT源码根目录feeds.conf.default文件
